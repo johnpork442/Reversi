@@ -1,0 +1,2 @@
+# Reversi
+Duelo de conquista 
