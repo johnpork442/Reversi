@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e131a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reversi">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>Reversi · Duelo de Conquista</title>
+<style>
+:root{--bg:#e9edf2;--card:#fff;--tx:#18202b;--mut:#5b6877;--p1:#d62828;--p2:#1f5fd6;--acc:#1f2a37;--bd:#cfd6df;--cell:#2f7a52;--cellh:#3b9264;--gap:#1d4d35;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e131a;--card:#171e28;--tx:#e8edf3;--mut:#8b98a8;--p1:#ef4444;--p2:#3b82f6;--acc:#2b3a4f;--bd:#2a3442;--cell:#245f41;--cellh:#2e7a54;--gap:#16392a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e131a;--card:#171e28;--tx:#e8edf3;--mut:#8b98a8;--p1:#ef4444;--p2:#3b82f6;--acc:#2b3a4f;--bd:#2a3442;--cell:#245f41;--cellh:#2e7a54;--gap:#16392a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;justify-content:center}
+main{width:100%;max-width:640px;padding:20px 16px 40px}
+h1{margin:0 0 4px;font-size:30px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center}
+.sub{text-align:center;color:var(--mut);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:18px;margin-bottom:14px}
+label.t{display:block;font-weight:700;margin:0 0 8px}
+input[type=text]{width:100%;padding:12px;border-radius:10px;border:2px solid var(--bd);background:var(--bg);color:var(--tx);font-size:17px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:10px 14px;border-radius:999px;border:2px solid var(--bd);background:var(--bg);color:var(--tx);font-size:15px;cursor:pointer}
+.chip.on{border-color:#8fa3bd;background:var(--acc);color:#fff}
+.note{color:var(--mut);font-size:14px;margin:8px 0 0}
+button.big{width:100%;padding:16px;font-size:17px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;border:1px solid #8fa3bd;border-radius:10px;background:var(--acc);color:#fff;cursor:pointer}
+button.ghost{padding:10px 14px;border-radius:10px;border:2px solid var(--bd);background:var(--card);color:var(--tx);font-size:15px;cursor:pointer}
+ul.rules{margin:0;padding-left:20px;color:var(--mut)}
+.score{display:flex;gap:10px;margin-bottom:12px}
+.pl{flex:1;border:3px solid var(--bd);border-radius:14px;padding:8px;text-align:center;background:var(--card);transition:.2s}
+.pl.act{transform:scale(1.04)}
+.pl .n{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .s{font-size:30px;font-weight:800;line-height:1.1}
+.pl .k{font-size:13px;color:var(--mut)}
+.msg{text-align:center;font-weight:700;min-height:26px;margin-bottom:10px}
+.board{display:grid;gap:3px;background:var(--gap);padding:3px;border-radius:12px;width:100%;max-width:min(94vw,540px);margin:0 auto 14px}
+.cell{aspect-ratio:1;background:var(--cell);border:0;border-radius:6px;position:relative;cursor:pointer;padding:0}
+.cell.v:hover{background:var(--cellh)}
+.cell.last{outline:3px solid #fde047;outline-offset:-3px}
+.disc{position:absolute;inset:10%;border-radius:50%;transform:scale(0);transition:transform .2s,background .35s;box-shadow:inset 0 -3px 0 rgba(0,0,0,.2)}
+.disc.p1{background:var(--p1);transform:scale(1)}
+.disc.p2{background:var(--p2);transform:scale(1)}
+.hint{position:absolute;inset:38%;border-radius:50%;background:rgba(255,255,255,.55);display:none}
+.cell.h .hint{display:block}
+.lab{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(12px,3.4vw,17px);color:#fff;min-width:1.2em;user-select:none}
+.bottom{display:flex;justify-content:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.ghost:disabled{opacity:.4;cursor:not-allowed}
+.ghost.ok{background:#15803d;border-color:#15803d;color:#fff;font-weight:700}
+.cell.sel{outline:3px solid #fff;outline-offset:-3px}
+@media (max-width:600px){main{padding:10px 8px 0}h1{font-size:22px;margin:0 0 8px}.sub{display:none}.card{padding:14px}.score{gap:6px;margin-bottom:8px}.pl{padding:6px}.pl .s{font-size:24px}.pl .k{font-size:12px}.msg{font-size:14px;margin-bottom:6px;min-height:20px}.board{max-width:100%;margin-bottom:8px}button.big,.ghost,.chip{min-height:48px}.bottom{position:sticky;bottom:0;background:var(--bg);padding:8px 0 10px;margin:0;border-top:1px solid var(--bd)}.bottom .ghost{flex:1;padding:10px 6px;font-size:14px}input[type=text]{font-size:16px}}
+.win{text-align:center;font-size:26px;font-weight:800;margin:4px 0 12px}
+.reto{border:2px dashed #8fa3bd;border-radius:12px;padding:14px;text-align:center;margin:12px 0;font-size:18px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>⚔️ Reversi</h1>
+<p class="sub">Rodea las fichas de tu rival y conviértelas en tuyas</p>
+
+<section id="setup">
+ <div class="card"><div class="row">
+  <div><label class="t" for="n1">Jugador 1 (rojo)</label><input id="n1" type="text" maxlength="14" placeholder="Tu nombre"></div>
+  <div><label class="t" for="n2">Jugador 2 (azul)</label><input id="n2" type="text" maxlength="14" placeholder="Su nombre"></div>
+ </div></div>
+ <div class="card"><label class="t">Tamaño del tablero</label><div class="chips" id="cN"></div><p class="note" id="nN"></p></div>
+ <div class="card"><label class="t">Formato</label><div class="chips" id="cS"></div></div>
+ <div class="card"><label class="t">Confirmar jugada</label><div class="chips" id="cC"></div><p class="note">Primero se selecciona la casilla y luego se pulsa Confirmar. Evita errores al tocar, sobre todo en el celular. Con Deshacer se puede retroceder jugadas.</p></div>
+ <div class="card"><label class="t">Ayuda visual</label><div class="chips" id="cH"></div><p class="note">Muestra puntos blancos en las casillas donde se puede jugar.</p></div>
+ <div class="card"><label class="t">Cómo se juega</label>
+  <ul class="rules">
+   <li>Por turnos, coloca una ficha en una casilla vacía donde rodees, en línea recta o diagonal, una o más fichas rivales entre la nueva ficha y otra tuya. Esas fichas se vuelven tuyas.</li>
+   <li>Si no tienes ninguna jugada válida, pierdes el turno.</li>
+   <li>Cada casilla se nombra con una letra (columna) y un número (fila), por ejemplo C4, para poder decir la jugada en voz alta.</li>
+   <li>La partida termina cuando nadie puede jugar. Gana quien tenga más fichas.</li>
+   <li>Las esquinas no se pueden voltear nunca: son las casillas más valiosas.</li>
+   <li>En una serie, quien empieza se alterna en cada partida. Quien pierda la serie cumple un reto.</li>
+  </ul>
+ </div>
+ <button class="big" id="go">¡A conquistar!</button>
+</section>
+
+<section id="game" class="hide">
+ <div class="score" id="score"></div>
+ <div class="msg" id="msg"></div>
+ <div class="board" id="board"></div>
+ <div class="card hide" id="res">
+  <div class="win" id="rt"></div>
+  <div class="reto hide" id="reto"></div>
+  <button class="big" id="nx"></button>
+ </div>
+ <div class="bottom"><button class="ghost ok hide" id="ok">✔ Confirmar</button><button class="ghost" id="undo">↩ Deshacer</button><button class="ghost" id="rst">Reiniciar</button><button class="ghost" id="quit">Inicio</button></div>
+</section>
+</main>
+
+<script>
+const RETOS=["Un masaje de 15 minutos 💆","Desayuno en la cama para el ganador 🥞","El ganador elige el plan del fin de semana 🗓️","Escribir 10 cosas que admiras del ganador 📝","Una serenata, aunque sea desafinada 🎤","Lavar los platos por una semana 🍽️","Sesión de fotos divertida elegida por el ganador 📸","Invitar el helado 🍦"];
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const COLORS=["var(--p1)","var(--p2)"];
+const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const L="ABCDEFGHIJ";
+const pos=i=>L[i%G.n]+(Math.floor(i/G.n)+1);
+let cfg={n:8,series:3,hint:true,confirm:matchMedia("(pointer:coarse)").matches},G;
+
+function chip(el,label,on,fn){const b=document.createElement("button");b.className="chip"+(on?" on":"");b.textContent=label;b.onclick=fn;el.appendChild(b)}
+function drawSetup(){
+ const a=$("cN");a.innerHTML="";
+ [[6,"6×6 (rápido)"],[8,"8×8 (clásico)"],[10,"10×10 (largo)"]].forEach(([v,l])=>chip(a,l,cfg.n===v,()=>{cfg.n=v;drawSetup()}));
+ $("nN").textContent=cfg.n===6?"Partida de unos 5 minutos.":cfg.n===8?"Partida clásica de unos 10 a 15 minutos.":"Partida larga, para tomarse su tiempo.";
+ const s=$("cS");s.innerHTML="";
+ [[1,"Una partida"],[3,"Mejor de 3"],[5,"Mejor de 5"]].forEach(([v,l])=>chip(s,l,cfg.series===v,()=>{cfg.series=v;drawSetup()}));
+ const h=$("cH");h.innerHTML="";
+ [[true,"Activada"],[false,"Desactivada (modo difícil)"]].forEach(([v,l])=>chip(h,l,cfg.hint===v,()=>{cfg.hint=v;drawSetup()}));
+ const cc=$("cC");cc.innerHTML="";
+ [[true,"Activada (recomendado en celular)"],[false,"Desactivada"]].forEach(([v,l])=>chip(cc,l,cfg.confirm===v,()=>{cfg.confirm=v;drawSetup()}));
+}
+drawSetup();
+
+$("go").onclick=()=>{
+ G={n:cfg.n,names:[$("n1").value.trim()||"Jugador 1",$("n2").value.trim()||"Jugador 2"],w:[0,0],g:0,need:Math.ceil((cfg.series+0.5)/2)};
+ $("setup").classList.add("hide");$("game").classList.remove("hide");
+ newGame();
+};
+$("rst").onclick=()=>newGame();
+$("quit").onclick=()=>{$("game").classList.add("hide");$("setup").classList.remove("hide")};
+
+function newGame(){
+ const n=G.n,m=n/2;
+ G.b=Array(n*n).fill(0);
+ G.b[(m-1)*n+m]=1;G.b[m*n-n+m-1+n]=1;
+ G.b[(m-1)*n+m-1]=2;G.b[m*n+m]=2;
+ G.turn=G.g%2+1;G.last=-1;G.over=false;G.note="";G.hist=[];G.sel=-1;
+ $("res").classList.add("hide");
+ const bd=$("board");bd.innerHTML="";bd.style.gridTemplateColumns=`auto repeat(${n},1fr)`;
+ const lab=t=>{const d=document.createElement("div");d.className="lab";d.textContent=t;bd.appendChild(d)};
+ lab("");for(let c=0;c<n;c++)lab(L[c]);
+ G.cells=[];
+ for(let i=0;i<n*n;i++){if(i%n===0)lab(Math.floor(i/n)+1);const c=document.createElement("button");c.className="cell";c.innerHTML='<span class="disc"></span><span class="hint"></span>';c.setAttribute("aria-label","casilla "+pos(i));c.onclick=()=>tap(i);bd.appendChild(c);G.cells.push(c)}
+ draw();
+}
+function flips(b,i,pl){
+ const n=G.n,r=Math.floor(i/n),c=i%n;if(b[i])return[];
+ let res=[];
+ for(const[dr,dc]of DIRS){
+  let line=[],rr=r+dr,cc=c+dc;
+  while(rr>=0&&rr<n&&cc>=0&&cc<n&&b[rr*n+cc]===3-pl){line.push(rr*n+cc);rr+=dr;cc+=dc}
+  if(line.length&&rr>=0&&rr<n&&cc>=0&&cc<n&&b[rr*n+cc]===pl)res=res.concat(line);
+ }
+ return res;
+}
+const moves=(b,pl)=>b.map((_,i)=>i).filter(i=>flips(b,i,pl).length);
+const count=pl=>G.b.filter(x=>x===pl).length;
+
+function draw(){
+ const mv=G.over?[]:moves(G.b,G.turn);
+ G.cells.forEach((c,i)=>{
+  const d=c.firstChild,v=G.b[i];
+  d.className="disc"+(v?" p"+v:"");
+  c.classList.toggle("v",mv.includes(i));
+  c.classList.toggle("h",cfg.hint&&mv.includes(i));
+  c.classList.toggle("last",i===G.last);
+  c.classList.toggle("sel",i===G.sel);
+ });
+ const act=G.over?-1:G.turn-1;
+ $("score").innerHTML=[0,1].map(i=>`<div class="pl${act===i?" act":""}" style="border-color:${act===i?COLORS[i]:"var(--bd)"}"><div class="n" style="color:${COLORS[i]}">${esc(G.names[i])}</div><div class="s">${count(i+1)}</div><div class="k">${G.need>1?"🏅 "+G.w[i]+" de "+G.need+" partidas":"fichas"}</div></div>`).join("");
+ $("msg").innerHTML=G.over?"":(G.note?G.note+"<br>":"")+`Turno de <span style="color:${COLORS[G.turn-1]}">${esc(G.names[G.turn-1])}</span>`+(G.last>=0?`<br><small style="color:var(--mut)">Última jugada: ${pos(G.last)}</small>`:"")+(cfg.hint?`<br><small style="color:var(--mut)">Jugadas posibles: ${mv.map(pos).join(", ")}</small>`:"")+(G.sel>=0&&!G.over?`<br><b>Seleccionada: ${pos(G.sel)}. Pulsa Confirmar.</b>`:"");
+ $("ok").classList.toggle("hide",!(cfg.confirm&&G.sel>=0&&!G.over));
+ $("ok").textContent="✔ Confirmar "+(G.sel>=0?pos(G.sel):"");
+ $("undo").disabled=G.over||!G.hist.length;
+}
+
+function tap(i){
+ if(G.over)return;
+ if(!cfg.confirm)return play(i);
+ if(!flips(G.b,i,G.turn).length)return;
+ G.sel=G.sel===i?-1:i;draw();
+}
+$("ok").onclick=()=>{if(G.sel>=0)play(G.sel)};
+$("undo").onclick=()=>{
+ if(G.over||!G.hist.length)return;
+ const h=G.hist.pop();
+ Object.assign(G,{b:h.b,turn:h.turn,last:h.last,note:"",sel:-1});draw();
+};
+function play(i){
+ if(G.over)return;
+ const f=flips(G.b,i,G.turn);
+ if(!f.length)return;
+ G.hist.push({b:G.b.slice(),turn:G.turn,last:G.last,note:G.note});G.sel=-1;
+ G.b[i]=G.turn;f.forEach(k=>G.b[k]=G.turn);G.last=i;G.note="";
+ const nxt=3-G.turn;
+ if(moves(G.b,nxt).length)G.turn=nxt;
+ else if(moves(G.b,G.turn).length)G.note=`⏭️ ${esc(G.names[nxt-1])} no tiene jugadas y pierde el turno.`;
+ else G.over=true;
+ draw();
+ if(G.over)setTimeout(endGame,500);
+}
+
+function endGame(){
+ const a=count(1),b=count(2);G.g++;
+ let w=a===b?-1:(a>b?0:1);if(w>=0)G.w[w]++;
+ const fin=G.w[0]>=G.need||G.w[1]>=G.need;
+ draw();
+ $("res").classList.remove("hide");
+ const rt=$("rt"),rv=$("reto"),nx=$("nx");
+ rv.classList.add("hide");
+ if(!fin){
+  rt.innerHTML=w<0?`🤝 ¡Empate ${a} a ${b}!`:`Ganó ${esc(G.names[w])} la partida ${a>b?a:b} a ${a>b?b:a} 🎉`;
+  nx.textContent=G.need>1||w<0?"Siguiente partida":"Jugar de nuevo";
+  nx.onclick=()=>newGame();
+ }else{
+  const f=G.w[0]>G.w[1]?0:1;
+  rt.innerHTML=G.need>1?`🏆 ¡${esc(G.names[f])} gana la serie ${G.w[f]}–${G.w[1-f]}!`:`🏆 ¡${esc(G.names[f])} conquistó el tablero ${a>b?a:b} a ${a>b?b:a}!`;
+  rv.classList.remove("hide");
+  rv.innerHTML=`<b>Reto para ${esc(G.names[1-f])}:</b> `+RETOS[Math.floor(Math.random()*RETOS.length)];
+  nx.textContent="Volver al inicio";
+  nx.onclick=()=>{$("game").classList.add("hide");$("setup").classList.remove("hide")};
+ }
+}
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
